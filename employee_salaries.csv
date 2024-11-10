@@ -1,0 +1,16 @@
+EmployeeID,Department,Age,YearsOfExperience,Salary
+1,Engineering,25,2,58000
+2,Engineering,30,5,72000
+3,Marketing,28,3,49000
+4,HR,35,8,61000
+5,Engineering,40,15,95000
+6,Marketing,45,20,80000
+7,Sales,38,10,56000
+8,HR,29,4,47000
+9,Engineering,50,25,120000
+10,Sales,32,6,68000
+11,Marketing,27,3,50000
+12,HR,55,30,85000
+13,Engineering,34,7,73000
+14,Sales,41,15,60000
+15,Marketing,39,12,59000
