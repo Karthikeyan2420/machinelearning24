@@ -269,7 +269,7 @@ for feature in X.columns:
     sensitivity = np.mean(np.abs(y_perturbed_pred - y_pred))
     print(f"Sensitivity for {feature}: {sensitivity:.4f}")
 
-# Step 8: Bagging Regressor
+
 # Step 8: Bagging Regressor
 bagging_model = BaggingRegressor(estimator=XGBRegressor(), n_estimators=10, random_state=42)
 bagging_model.fit(X_train, y_train)
