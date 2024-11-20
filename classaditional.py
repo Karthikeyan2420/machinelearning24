@@ -300,7 +300,7 @@ plt.show()
 
  """
 
-
+""" 
 import pandas as pd
 import numpy as np
 df = pd.read_csv("data.csv")
@@ -316,3 +316,94 @@ for _ in range(additional_rows // len(df)):
     perturbed_df = perturb_data(df)
     expanded_df = pd.concat([expanded_df, perturbed_df], ignore_index=True)
 expanded_df.to_csv("large_data.csv", index=False)
+ """
+
+import numpy as np
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import make_regression
+
+# Generate synthetic data
+X, y = make_regression(n_samples=1000, n_features=5, noise=0.1)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Define the neural network
+model = Sequential([
+    Dense(10, input_dim=X.shape[1], activation='relu'),
+    Dense(1, activation='linear')
+])
+
+# Compile and train the model
+model.compile(optimizer='adam', loss='mse')
+model.fit(X_train, y_train, epochs=50, batch_size=32, verbose=0)
+
+
+def garson_feature_importance(model):
+    """
+    Calculates feature importance using the Garson algorithm.
+    Parameters:
+        model (keras.Sequential): A trained neural network model.
+    Returns:
+        numpy.ndarray: Feature importances.
+    """
+    weights = [layer.get_weights()[0] for layer in model.layers if len(layer.get_weights()) > 0]
+    
+    # Extract input-to-hidden and hidden-to-output weights
+    input_hidden_weights = weights[0]
+    hidden_output_weights = weights[1]
+    
+    # Compute absolute contributions
+    abs_input_hidden = np.abs(input_hidden_weights)
+    abs_hidden_output = np.abs(hidden_output_weights)
+    
+    # Contribution of each input feature
+    total_contribution = np.sum(abs_input_hidden, axis=0) * np.sum(abs_hidden_output, axis=1)
+    feature_importance = total_contribution / np.sum(total_contribution)
+    
+    return feature_importance
+
+# Get feature importances
+importances = garson_feature_importance(model)
+print("Feature Importances (Garson):", importances)
+
+
+def connection_weight_importance(model):
+    """
+    Calculates feature importance using the connection weight approach.
+    Parameters:
+        model (keras.Sequential): A trained neural network model.
+    Returns:
+        numpy.ndarray: Feature importances.
+    """
+    weights = [layer.get_weights()[0] for layer in model.layers if len(layer.get_weights()) > 0]
+    
+    # Extract input-to-hidden and hidden-to-output weights
+    input_hidden_weights = weights[0]
+    hidden_output_weights = weights[1]
+    
+    # Compute product of weights for connection weights
+    connection_weights = input_hidden_weights @ hidden_output_weights
+    feature_importance = np.sum(np.abs(connection_weights), axis=1)
+    feature_importance /= np.sum(feature_importance)  # Normalize
+    
+    return feature_importance
+
+# Get feature importances
+importances_cw = connection_weight_importance(model)
+print("Feature Importances (Connection Weight):", importances_cw)
+
+
+
+import matplotlib.pyplot as plt
+
+labels = [f'Feature {i+1}' for i in range(X.shape[1])]
+x = np.arange(len(labels))
+
+plt.bar(x - 0.2, importances, width=0.4, label='Garson')
+plt.bar(x + 0.2, importances_cw, width=0.4, label='Connection Weight')
+plt.xticks(x, labels)
+plt.ylabel('Importance')
+plt.title('Feature Importance Comparison')
+plt.legend()
+plt.show()
