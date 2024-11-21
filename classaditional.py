@@ -394,16 +394,3 @@ importances_cw = connection_weight_importance(model)
 print("Feature Importances (Connection Weight):", importances_cw)
 
 
-
-import matplotlib.pyplot as plt
-
-labels = [f'Feature {i+1}' for i in range(X.shape[1])]
-x = np.arange(len(labels))
-
-plt.bar(x - 0.2, importances, width=0.4, label='Garson')
-plt.bar(x + 0.2, importances_cw, width=0.4, label='Connection Weight')
-plt.xticks(x, labels)
-plt.ylabel('Importance')
-plt.title('Feature Importance Comparison')
-plt.legend()
-plt.show()
