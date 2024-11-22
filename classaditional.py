@@ -317,7 +317,7 @@ for _ in range(additional_rows // len(df)):
     expanded_df = pd.concat([expanded_df, perturbed_df], ignore_index=True)
 expanded_df.to_csv("large_data.csv", index=False)
  """
-
+""" 
 import numpy as np
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
@@ -340,13 +340,7 @@ model.fit(X_train, y_train, epochs=50, batch_size=32, verbose=0)
 
 
 def garson_feature_importance(model):
-    """
-    Calculates feature importance using the Garson algorithm.
-    Parameters:
-        model (keras.Sequential): A trained neural network model.
-    Returns:
-        numpy.ndarray: Feature importances.
-    """
+    
     weights = [layer.get_weights()[0] for layer in model.layers if len(layer.get_weights()) > 0]
     
     # Extract input-to-hidden and hidden-to-output weights
@@ -369,13 +363,7 @@ print("Feature Importances (Garson):", importances)
 
 
 def connection_weight_importance(model):
-    """
-    Calculates feature importance using the connection weight approach.
-    Parameters:
-        model (keras.Sequential): A trained neural network model.
-    Returns:
-        numpy.ndarray: Feature importances.
-    """
+  
     weights = [layer.get_weights()[0] for layer in model.layers if len(layer.get_weights()) > 0]
     
     # Extract input-to-hidden and hidden-to-output weights
@@ -394,3 +382,112 @@ importances_cw = connection_weight_importance(model)
 print("Feature Importances (Connection Weight):", importances_cw)
 
 
+"""
+
+
+
+
+
+
+
+
+
+
+
+import numpy as np
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score
+
+# Load the Iris dataset
+iris = datasets.load_iris()
+X = iris.data
+y = iris.target
+
+# One-hot encode the target labels (3 classes)
+y_one_hot = np.zeros((y.size, y.max() + 1))
+y_one_hot[np.arange(y.size), y] = 1
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y_one_hot, test_size=0.2, random_state=42)
+
+# Normalize the features
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Define sigmoid activation function and its derivative
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+    return x * (1 - x)
+
+# Define a simple neural network with one hidden layer
+input_layer_neurons = X_train.shape[1]  # Number of features (4 for Iris dataset)
+hidden_layer_neurons = 5               # Number of neurons in the hidden layer
+output_layer_neurons = y_train.shape[1] # Number of classes (3 classes)
+
+# Initialize weights and biases
+hidden_weights = np.random.randn(input_layer_neurons, hidden_layer_neurons)
+hidden_bias = np.random.randn(1, hidden_layer_neurons)
+output_weights = np.random.randn(hidden_layer_neurons, output_layer_neurons)
+output_bias = np.random.randn(1, output_layer_neurons)
+
+# Set learning rate and number of epochs
+learning_rate = 0.01
+epochs = 10000
+
+# Training the neural network using backpropagation
+for epoch in range(epochs):
+    # Feedforward
+    hidden_layer_input = np.dot(X_train, hidden_weights) + hidden_bias
+    hidden_layer_output = sigmoid(hidden_layer_input)
+    
+    output_layer_input = np.dot(hidden_layer_output, output_weights) + output_bias
+    predicted_output = sigmoid(output_layer_input)
+    
+    # Calculate the error (difference between predicted and actual output)
+    error = y_train - predicted_output
+    
+    # Backpropagation
+    d_predicted_output = error * sigmoid_derivative(predicted_output)
+    error_hidden_layer = d_predicted_output.dot(output_weights.T)
+    d_hidden_layer = error_hidden_layer * sigmoid_derivative(hidden_layer_output)
+    
+    # Update weights and biases
+    output_weights += hidden_layer_output.T.dot(d_predicted_output) * learning_rate
+    output_bias += np.sum(d_predicted_output, axis=0, keepdims=True) * learning_rate
+    hidden_weights += X_train.T.dot(d_hidden_layer) * learning_rate
+    hidden_bias += np.sum(d_hidden_layer, axis=0, keepdims=True) * learning_rate
+    
+    # Print error every 1000 iterations
+    if epoch % 1000 == 0:
+        print(f"Epoch {epoch}, Error: {np.mean(np.abs(error))}")
+
+# Final output after training
+final_output = predicted_output
+
+# Convert final output to predicted class labels
+predicted_class = np.argmax(final_output, axis=1)
+true_class = np.argmax(y_train, axis=1)
+
+# Calculate accuracy
+accuracy = accuracy_score(true_class, predicted_class)
+print("\nTraining Accuracy: ", accuracy)
+
+# Test the model on the test set
+hidden_layer_input_test = np.dot(X_test, hidden_weights) + hidden_bias
+hidden_layer_output_test = sigmoid(hidden_layer_input_test)
+
+output_layer_input_test = np.dot(hidden_layer_output_test, output_weights) + output_bias
+predicted_output_test = sigmoid(output_layer_input_test)
+
+# Convert final output to predicted class labels
+predicted_class_test = np.argmax(predicted_output_test, axis=1)
+true_class_test = np.argmax(y_test, axis=1)
+
+# Calculate accuracy on the test set
+test_accuracy = accuracy_score(true_class_test, predicted_class_test)
+print("Test Accuracy: ", test_accuracy)
