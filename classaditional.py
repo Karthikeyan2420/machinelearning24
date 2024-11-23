@@ -392,7 +392,7 @@ print("Feature Importances (Connection Weight):", importances_cw)
 
 
 
-
+""" 
 
 import numpy as np
 from sklearn import datasets
@@ -490,4 +490,136 @@ true_class_test = np.argmax(y_test, axis=1)
 
 # Calculate accuracy on the test set
 test_accuracy = accuracy_score(true_class_test, predicted_class_test)
-print("Test Accuracy: ", test_accuracy)
+print("Test Accuracy: ", test_accuracy) """
+import numpy as np
+from sklearn.datasets import load_iris
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.model_selection import train_test_split
+
+# Load and preprocess the Iris dataset
+iris = load_iris()
+X = iris.data  # Features: (150, 4)
+y = iris.target  # Target: (150,)
+
+# Normalize the features
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+# One-hot encode the target labels
+encoder = OneHotEncoder(sparse_output=False)  # Updated to `sparse_output` for compatibility
+y = encoder.fit_transform(y.reshape(-1, 1))  # Shape: (150, 3)
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Define ANN architecture
+input_size = X_train.shape[1]  # 4 features
+hidden_size = 5  # Hidden layer with 5 neurons
+output_size = y_train.shape[1]  # 3 output classes
+
+# Initialize weights and biases
+np.random.seed(42)
+W1 = np.random.randn(input_size, hidden_size) * 0.01
+b1 = np.zeros(hidden_size)
+W2 = np.random.randn(hidden_size, output_size) * 0.01
+b2 = np.zeros(output_size)
+
+# Activation functions
+def sigmoid(x):
+    x = np.clip(x, -500, 500)  # Prevent overflow
+    return 1 / (1 + np.exp(-x))
+
+def sigmoid_derivative(x):
+    return sigmoid(x) * (1 - sigmoid(x))
+
+# Forward pass
+def forward(X, W1, b1, W2, b2):
+    Z1 = np.dot(X, W1) + b1
+    A1 = sigmoid(Z1)
+    Z2 = np.dot(A1, W2) + b2
+    A2 = sigmoid(Z2)
+    return A1, A2  # Return hidden layer output and final output
+
+# Compute Jacobian matrix
+def compute_jacobian(X, A1, W2, y_pred):
+    m, input_size = X.shape
+    hidden_size, output_size = W2.shape
+    n_params = (input_size * hidden_size) + hidden_size + (hidden_size * output_size) + output_size
+
+    # Initialize the Jacobian matrix
+    J = np.zeros((m * output_size, n_params))
+    
+    for i in range(m):
+        # Derivatives for the output layer
+        dZ2_dW2 = np.outer(A1[i], y_pred[i] * (1 - y_pred[i]))  # Shape: (hidden_size, output_size)
+        dZ2_db2 = y_pred[i] * (1 - y_pred[i])  # Shape: (output_size,)
+        
+        # Derivatives for the hidden layer
+        dZ2_dA1 = W2 @ (y_pred[i] * (1 - y_pred[i]))  # Shape: (hidden_size,)
+        dA1_dW1 = np.outer(X[i], A1[i] * (1 - A1[i]))  # Shape: (input_size, hidden_size)
+        dA1_db1 = A1[i] * (1 - A1[i])  # Shape: (hidden_size,)
+
+        # Flatten all derivatives for the current sample
+        row = np.hstack([
+            dA1_dW1.flatten(),  # Flattened weights from input to hidden
+            dA1_db1,           # Biases of hidden layer
+            dZ2_dW2.flatten(), # Flattened weights from hidden to output
+            dZ2_db2            # Biases of output layer
+        ])
+
+        # Check if the row length matches the number of parameters
+        assert len(row) == n_params, f"Row length {len(row)} doesn't match expected {n_params}"
+
+        # Assign row to the Jacobian matrix
+        start = i * output_size
+        end = (i + 1) * output_size
+        J[start:end, :] = row
+
+    return J
+
+# Training with LM algorithm
+mu = 0.01  # Damping parameter
+epsilon = 1e-6  # Regularization term
+max_iter = 100
+
+for epoch in range(max_iter):
+    # Forward pass
+    A1, y_pred = forward(X_train, W1, b1, W2, b2)
+    
+    # Compute error
+    error = y_train - y_pred
+    mse = np.mean(error**2)
+    
+    # Compute Jacobian
+    J = compute_jacobian(X_train, A1, W2, y_pred)
+
+    # Regularization term for the Hessian
+    H = J.T @ J + mu * np.eye(J.shape[1]) + epsilon * np.eye(J.shape[1])
+
+    # Gradient vector
+    g = J.T @ (y_train - y_pred).flatten()
+
+    # Parameter updates using pseudo-inverse
+    delta = np.linalg.pinv(H) @ g
+
+    # Update weights and biases
+    W1 -= delta[:W1.size].reshape(W1.shape)
+    b1 -= delta[W1.size:W1.size + b1.size]
+    W2 -= delta[W1.size + b1.size:W1.size + b1.size + W2.size].reshape(W2.shape)
+    b2 -= delta[-b2.size:]
+
+    # Adjust mu
+    if mse < 1e-6:
+        print(f"Converged at epoch {epoch + 1}, MSE: {mse}")
+        break
+    elif mse < np.mean((y_train - forward(X_train, W1, b1, W2, b2)[1])**2):
+        mu *= 0.1
+    else:
+        mu *= 10
+
+    print(f"Epoch {epoch + 1}, MSE: {mse}")
+
+# Evaluate on test data
+_, y_test_pred = forward(X_test, W1, b1, W2, b2)
+accuracy = np.mean(np.argmax(y_test_pred, axis=1) == np.argmax(y_test, axis=1))
+print(f"Test Accuracy: {accuracy * 100:.2f}%")
