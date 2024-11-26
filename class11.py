@@ -61,7 +61,7 @@ plt.title('PCA of IRIS dataset')
 
 plt.show() """
 
-from wordcloud import WordCloud
+""" from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
 # Sample text data
@@ -74,4 +74,26 @@ wordcloud = WordCloud(width=800, height=400, background_color='white').generate(
 plt.figure(figsize=(10, 5))
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis('off')
-plt.show() 
+plt.show()  """
+
+import pandas as pd
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+
+# Step 1: Read the CSV file
+csv_file = "adult.csv"
+df = pd.read_csv(csv_file)
+
+# Step 2: Extract text data from the 'text' column
+# Combine all text into a single string
+text = " ".join(df['nativeCountry'].astype(str))
+
+# Step 3: Generate the WordCloud
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate(text)
+
+# Step 4: Display the WordCloud
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
