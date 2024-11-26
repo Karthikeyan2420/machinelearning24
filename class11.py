@@ -61,7 +61,7 @@ plt.title('PCA of IRIS dataset')
 
 plt.show() """
 
-""" from wordcloud import WordCloud
+from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
 # Sample text data
@@ -74,4 +74,4 @@ wordcloud = WordCloud(width=800, height=400, background_color='white').generate(
 plt.figure(figsize=(10, 5))
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis('off')
-plt.show() """
+plt.show() 
