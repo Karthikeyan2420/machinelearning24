@@ -1,94 +1,75 @@
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, BatchNormalization
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.losses import Huber
+from sklearn.preprocessing import StandardScaler
+from keras.models import Sequential
+from keras.layers import Conv1D, Dropout, Flatten, Dense, BatchNormalization
+from keras.optimizers import Adam
+from keras.callbacks import EarlyStopping
+from keras.losses import Huber
 
-# Load data
-data = pd.read_csv('data.csv')
-X = data.drop('cv', axis=1)
-y = data['cv']
+# Example: Generate Synthetic Data (Replace with your dataset)
+np.random.seed(42)
+X = np.random.rand(1000, 10, 1)  # 1000 samples, 10 time steps, 1 feature
+y = np.random.rand(1000) * 100  # Regression target
 
-# Train-Test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+# 1. Split the Data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
 
-# Feature Scaling
-scaler_X = StandardScaler()
-X_train = scaler_X.fit_transform(X_train)
-X_test = scaler_X.transform(X_test)
+# 2. Normalize the Data
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train.reshape(-1, X_train.shape[-1])).reshape(X_train.shape)
+X_val = scaler.transform(X_val.reshape(-1, X_val.shape[-1])).reshape(X_val.shape)
+X_test = scaler.transform(X_test.reshape(-1, X_test.shape[-1])).reshape(X_test.shape)
 
-# Target Scaling (MinMax)
-scaler_y = MinMaxScaler()
-y_train = scaler_y.fit_transform(y_train.values.reshape(-1, 1))
-y_test = scaler_y.transform(y_test.values.reshape(-1, 1))
+# 3. Define the Model
+model = Sequential([
+    Conv1D(128, kernel_size=2, activation='relu', input_shape=(X_train.shape[1], X_train.shape[2])),
+    BatchNormalization(),
+    Dropout(0.3),
+    Conv1D(64, kernel_size=2, activation='relu'),
+    BatchNormalization(),
+    Dropout(0.3),
+    Flatten(),
+    Dense(128, activation='relu'),
+    Dense(1)  # Regression output
+])
 
-# Model Architecture
-model = Sequential()
+# 4. Compile the Model
+optimizer = Adam(learning_rate=0.0005)  # Lower learning rate
+model.compile(optimizer=optimizer, loss=Huber(), metrics=['mae'])
 
-# Input Layer + Batch Normalization
-model.add(Dense(512, input_shape=(X_train.shape[1],), activation='relu', kernel_regularizer=l2(0.01)))
-model.add(BatchNormalization())
-model.add(Dropout(0.3))
+# 5. Define Early Stopping
+early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 
-# Hidden Layers
-model.add(Dense(256, activation='relu', kernel_regularizer=l2(0.01)))
-model.add(BatchNormalization())
-model.add(Dropout(0.3))
-
-model.add(Dense(128, activation='relu'))
-model.add(BatchNormalization())
-model.add(Dropout(0.2))
-
-# Output Layer
-model.add(Dense(1))  # Regression output
-
-# Compile the Model
-optimizer = Adam(learning_rate=0.001)
-loss_fn = Huber(delta=1.0)  # Huber Loss for regression tasks
-model.compile(optimizer=optimizer, loss=loss_fn, metrics=['mean_squared_error'])
-
-# Callbacks
-early_stop = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
-reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, min_lr=1e-6, verbose=1)
-
-# Train the Model
+# 6. Train the Model
 history = model.fit(
     X_train, y_train,
-    validation_split=0.2,
-    epochs=500,
-    batch_size=16,
-    callbacks=[early_stop, reduce_lr],
+    validation_data=(X_val, y_val),
+    epochs=100,
+    batch_size=32,
+    callbacks=[early_stopping],
     verbose=1
 )
 
-# Evaluate on Test Set
-test_mse = model.evaluate(X_test, y_test, verbose=0)[1]
-print(f"\nFinal Mean Squared Error on Test Set: {test_mse:.4f}")
+# 7. Evaluate the Model
+test_loss, test_mae = model.evaluate(X_test, y_test, verbose=0)
+print(f"Test Loss: {test_loss:.4f}, Test MAE: {test_mae:.4f}")
 
-# Predictions
-y_pred = model.predict(X_test)
-y_pred_original = scaler_y.inverse_transform(y_pred)
-y_test_original = scaler_y.inverse_transform(y_test)
+# 8. Plot Training History
+import matplotlib.pyplot as plt
 
-# Display Results
-results = pd.DataFrame({'Actual': y_test_original.flatten(), 'Predicted': y_pred_original.flatten()})
-print("\nPredictions vs Actual:")
-print(results.head(10))
-
-# Plot Actual vs Predicted Values
-plt.figure(figsize=(10, 6))
-plt.plot(y_test_original, label='Actual', marker='o')
-plt.plot(y_pred_original, label='Predicted', linestyle='--', marker='x')
-plt.title('Actual vs Predicted Values')
-plt.xlabel('Sample Index')
-plt.ylabel('cv')
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
 plt.legend()
-plt.grid()
+plt.title('Training and Validation Loss')
 plt.show()
+
+# 9. Predict on Test Data
+y_pred = model.predict(X_test)
+
+# Example: Compare True and Predicted Values
+for true, pred in zip(y_test[:5], y_pred[:5]):
+    print(f"True: {true:.2f}, Predicted: {pred[0]:.2f}")
