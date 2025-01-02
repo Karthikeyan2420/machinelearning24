@@ -90,7 +90,7 @@ plt.show()  """
 
 
 """Linear regression is used to predict the continuous dependent variable using a given set of independent variables. """
-""" 
+ 
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
@@ -118,14 +118,14 @@ y_pred_train = model.predict(X_train)
 y_pred_test = model.predict(X_test)
 
 # Model evaluation
-train_rmse = mean_squared_error(y_train, y_pred_train, squared=False)
-test_rmse = mean_squared_error(y_test, y_pred_test, squared=False)
+train_rmse = mean_squared_error(y_train, y_pred_train)
+test_rmse = mean_squared_error(y_test, y_pred_test)
 
 print("Training RMSE:", train_rmse)
-print("Testing RMSE:", test_rmse) """
+print("Testing RMSE:", test_rmse) 
  
 
-
+""" 
  
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -156,3 +156,4 @@ test_rmse_simple = mean_squared_error(y_simple_test, y_simple_pred_test, squared
 
 print("Simple Linear Regression - Training RMSE:", train_rmse_simple)
 print("Simple Linear Regression - Testing RMSE:", test_rmse_simple)
+ """
