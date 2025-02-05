@@ -1,4 +1,4 @@
-import pandas as pd
+""" import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
@@ -81,3 +81,14 @@ y_test = y_test.astype('int')
 test_loss, test_accuracy = model.evaluate(X_test_processed, y_test)
 
 print(f"Test Accuracy: {test_accuracy * 100:.2f}%")
+ """
+ 
+ 
+""" a=125
+r=0
+
+while(a>0):
+    c=a%10
+    r=(r*10)+c
+    a=a//10
+print(r) """
